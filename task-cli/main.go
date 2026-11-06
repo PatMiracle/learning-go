@@ -70,7 +70,7 @@ func getTasks() []Task {
 		if errors.Is(err, os.ErrNotExist) {
 			return []Task{}
 		}
-		panic(err)
+		log.Fatalf("Error reading %s: %v", taskFile, err)
 	}
 
 	// handle empty file
@@ -81,7 +81,7 @@ func getTasks() []Task {
 	var tasks []Task
 
 	if err := json.Unmarshal(data, &tasks); err != nil {
-		panic(err)
+		log.Fatalf("Error reading JSON from %s: %v", taskFile, err)
 	}
 
 	return tasks
@@ -91,14 +91,14 @@ func saveTasks(tasks []Task) {
 	serializedTasks, serializeErr := json.Marshal(tasks)
 
 	if serializeErr != nil {
-		panic(serializeErr)
+		log.Fatalf("Error marshaling tasks: %v", serializeErr)
 	}
 
 	// 0644 gives read/write permissions to owner, read-only to others
 	writeErr := os.WriteFile(taskFile, serializedTasks, 0644)
 
 	if writeErr != nil {
-		panic(writeErr)
+		log.Fatalf("Error saving to %s: %v", taskFile, writeErr)
 	}
 }
 
@@ -111,8 +111,14 @@ func handleAdd(args []string) {
 	description := args[1]
 
 	tasks := getTasks()
+	maxID := 0
+	for _, t := range tasks {
+		if t.ID > maxID {
+			maxID = t.ID
+		}
+	}
 	newTask := Task{
-		ID:          len(tasks) + 1,
+		ID:          maxID + 1,
 		Description: description,
 		Status:      StatusTodo,
 		CreatedAt:   time.Now(),
@@ -123,7 +129,7 @@ func handleAdd(args []string) {
 
 	saveTasks(tasks)
 
-	fmt.Printf("Task added successfully (ID: %d)", newTask.ID)
+	fmt.Printf("Task added successfully (ID: %d)\n", newTask.ID)
 }
 
 func updateTask(id int, desc string, status Status) {
@@ -158,7 +164,7 @@ func updateTask(id int, desc string, status Status) {
 
 	saveTasks(tasks)
 
-	fmt.Printf("Task updated successfully (ID: %d)", id)
+	fmt.Printf("Task updated successfully (ID: %d)\n", id)
 }
 
 func handleUpdate(args []string) {
@@ -208,7 +214,7 @@ func handleDelete(args []string) {
 
 	saveTasks(tasks)
 
-	fmt.Printf("Task deleted successfully (ID: %d)", taskId)
+	fmt.Printf("Task deleted successfully (ID: %d)\n", taskId)
 }
 
 func handleMarkStatus(args []string) {
@@ -295,7 +301,7 @@ func handleListing(args []string) {
 	}
 
 	if len(tasksToView) == 0 {
-		println("There are no tasks")
+		fmt.Println("There are no tasks\n")
 		return
 	}
 
